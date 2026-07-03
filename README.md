@@ -32,3 +32,90 @@ VLM采用Transformer架构，其编码器（encoder）有 ![](https://latex.code
 </p>
 
 它封装了从浅到深各种层次尺度的语义信息，表征了场景几何（低层次）、物体语义（高层次）、语言理解（高层次）等。
+<br><br><br><br><br><br><br><br><br><br>
+
+# 皮层模块——Q-Former子模块
+
+从 ![](https://latex.codecogs.com/svg.latex?\mathcal{H}_t) 当中指定第 ![](https://latex.codecogs.com/svg.latex?l_{\text{start}}) 层到第 ![](https://latex.codecogs.com/svg.latex?l_{\text{end}}) 层的隐藏状态，总共 ![](https://latex.codecogs.com/svg.latex?M=l_{\text{end}}-l_{\text{start}}+1) 个，将它们沿行方向拼接（concatenate），得到
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\text{Concatenate}\left(\mathcal{H}_t\left[l_{\text{start}}:l_{\text{end}}\right]\right)\in\mathbb{R}^{MS\times{}D}.">
+</p>
+
+在后文中，![](https://latex.codecogs.com/svg.latex?\text{Concatenate}(\cdot)) 简记为 ![](https://latex.codecogs.com/svg.latex?\text{Concat}(\cdot)) 。<br>
+随后进行映射，得到键矩阵（Key Matrix）以及值矩阵（Value Matrix），即
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\begin{align*}K&=W_K\cdot\text{Concat}\left(\mathcal{H}_t\left[l_{\text{start}}:l_{\text{end}}\right]\right)\in\mathbb{R}^{MS\times{}D}\\{}V&=W_V\cdot\text{Concat}\left(\mathcal{H}_t\left[l_{\text{start}}:l_{\text{end}}\right]\right)\in\mathbb{R}^{MS\times{}D}\end{align*}">
+</p>
+
+其中 ![](https://latex.codecogs.com/svg.latex?W_K,W_V\in\mathbb{R}^{MS\times{}MS}) 为映射矩阵。<br>
+引入一个可学习的（learnable）查询矩阵（Query Matrix），即
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?Q\in\mathbb{R}^{K\times{}D},">
+</p>
+
+让它和
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?K\in\mathbb{R}^{MS\times{}D},\quad{}V\in\mathbb{R}^{MS\times{}D}">
+</p>
+
+进行交叉注意力（Cross Attention）计算，即
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\text{Attention}\left(Q,K,V\right)=\text{softmax}\left(\frac{QK^\top}{\sqrt{D}}\right)\cdot{}V\in\mathbb{R}^{K\times{}D},">
+</p>
+
+这个形状为 ![](https://latex.codecogs.com/svg.latex?\left(K,D\right)) 的计算结果就包含了VLM子模块所提取的隐藏状态信息（从浅层次的空间细节到深层次的抽象语义）。<br>
+应注意，隐藏状态信息原本包含于一个形状为 ![](https://latex.codecogs.com/svg.latex?\left(MS,D\right)) 的矩阵，现在则包含于一个形状为 ![](https://latex.codecogs.com/svg.latex?\left(K,D\right)) 的矩阵。机器人接收的自然语言指令的长度是随机的，这就意味着序列的长度 ![](https://latex.codecogs.com/svg.latex?S) 是随机的，可以是很小的值，也可以是很大的值。无论 ![](https://latex.codecogs.com/svg.latex?MS) 的值有多小或者多大，包含隐藏状态信息的矩阵的形状始终由 ![](https://latex.codecogs.com/svg.latex?\left(MS,D\right)) 切换为固定不变的 ![](https://latex.codecogs.com/svg.latex?\left(K,D\right)) 。<br>
+对
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\text{Attention}\left(Q,K,V\right)\in\mathbb{R}^{K\times{}D}">
+</p>
+
+进行仿射（affine，即“投影+偏置”），
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{semantic}}=\text{Attention}\left(Q,K,V\right)\cdot{}W_{\text{affine}}+B_{\text{affine}}\in\mathbb{R}^{K\times{}D_{\text{action}}},">
+</p>
+
+其中
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?W_{\text{affine}}\in\mathbb{R}^{D\times{}D_{\text{action}}},\quad{}B_{\text{affine}}\in\mathbb{R}^{K\times{}D_{\text{action}}},">
+</p>
+
+并且 ![](https://latex.codecogs.com/svg.latex?D_{\text{action}}) 一般远远小于 ![](https://latex.codecogs.com/svg.latex?D) 。<br>
+![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{semantic}}\in\mathbb{R}^{K\times{}D_{\text{action}}}) 整体表征了皮层模块所生成并发送给小脑模块的“语义性潜在意图”（Semantic Latent Intention），它有 ![](https://latex.codecogs.com/svg.latex?K) 行，其每一行的 ![](https://latex.codecogs.com/svg.latex?D_{\text{action}}) 个分量共同集中表征了这种“语义性潜在意图”的某一个具体的方面。<br>
+在后文中，![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{semantic}}) 简记为 ![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{sem}}) 。<br>
+相比于维度大小较为庞大的
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\text{Concat}\left(\mathcal{H}_t\left[l_{\text{start}}:l_{\text{end}}\right]\right)\in\mathbb{R}^{MS\times{}D},">
+</p>
+
+维度大小明显较小的
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{sem}}\in\mathbb{R}^{K\times{}D_{\text{action}}}">
+</p>
+
+具备紧凑性（compactness），也就是说，后者相比前者用了更短的码长（更少的矩阵元素，因为 ![](https://latex.codecogs.com/svg.latex?K\times{}D_{\text{action}}\ll{}MS\times{}D) ）对隐藏状态信息进行编码，信息密度更高，编码更紧凑。尽管两者都包含了隐藏状态信息，但只有后者才能够作为皮层模块向小脑模块输出的包含语义、意图等高层抽象信息的数据。原论文作者团队明确指出：<br>
+“直接将高维、可变长度的VLM隐藏状态输入运动策略在计算上是不可行的，并且容易导致过拟合。为了弥合VLM的语言-视觉空间与机器人控制流形（robot’s control manifold）之间的维度鸿沟，我们采用了一个分层查询Transformer（Layer-wise Querying Transformer，Q-Former）。”<br>
+原论文作者团队将Q-Former的实质定义为“可学习的信息瓶颈”（learnable information bottleneck）。<br>
+另外需要指出的是，（原文）“不仅仅使用最终层，而是从指定的中间层索引范围 ![](https://latex.codecogs.com/svg.latex?\left[l_{\text{start}},l_{\text{end}}\right]) 当中提取特征，以同时捕获低层空间细节和高层语义抽象”，这一点是原论文作者团队特意设计的。<br>
+针对Q-Former的生物学启示，原论文作者团队总结道：<br>
+“该机制反映了皮层抽象的生物原理。正如大脑运动皮层向下游回路发送紧凑的群体水平意图信号（而非原始像素数据），我们的Q-Former将VLM的庞大知识蒸馏为紧凑的、以运动为中心的表征。这一语义潜码 ![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{sem}}) 编码了‘做什么’（例如，抓取杯子），而对‘如何做’的具体物理过程（例如，补偿摩擦力）保持不可知（agnostic），有效地将语义规划与物理调制解耦。”<br>
+所谓的“群体水平意图信号”（population-level intent signals）在Q-Former中指的是 ![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{sem}}\in\mathbb{R}^{K\times{}D_{\text{action}}}) 的 ![](https://latex.codecogs.com/svg.latex?K) 行向量分别表征“语义性潜在意图”的某一个具体的方面，而这 ![](https://latex.codecogs.com/svg.latex?K) 个向量所组成的“群体”，则表征“群体水平”的“语义性潜在意图”。<br>
+总之，如果将键/值空间投影、交叉注意力、仿射这三部分计算逻辑封装在 ![](https://latex.codecogs.com/svg.latex?\text{Q-Former}(\cdot,\cdot)) 函数内部，则Q-Former子模块整体的输出结果可以形式化描述为
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{sem}}=\text{Q-Former}\left(\text{Concat}\left(\mathcal{H}_t\left[l_{\text{start}}:l_{\text{end}}\right]\right),Q\right)\in\mathbb{R}^{K\times{}D_{\text{action}}}.">
+</p>
+
+<br><br><br><br><br><br><br><br>
+
+# 小脑模块——GRU子模块
