@@ -146,7 +146,7 @@ VLM采用Transformer架构，其编码器（encoder）有 ![](https://latex.code
 在后文中，![](https://latex.codecogs.com/svg.latex?D_{\text{state}}) 简记为 ![](https://latex.codecogs.com/svg.latex?D_s) 。<br>
 传感器的采样周期为 ![](https://latex.codecogs.com/svg.latex?\Delta{}t) ，即每隔 ![](https://latex.codecogs.com/svg.latex?\Delta{}t) 秒便会进行 ![](https://latex.codecogs.com/svg.latex?1) 次采样。![](https://latex.codecogs.com/svg.latex?\Delta{}t) 往往是毫秒级的，例如 ![](https://latex.codecogs.com/svg.latex?\Delta{}t=0.02s=20ms) 。传感器的采样频率为 ![](https://latex.codecogs.com/svg.latex?f) ，即 ![](https://latex.codecogs.com/svg.latex?1) 秒钟之内总共进行 ![](https://latex.codecogs.com/svg.latex?f) 次采样（例如 ![](https://latex.codecogs.com/svg.latex?f=50\mathrm{Hz}) ）。<br>
 既然每隔 ![](https://latex.codecogs.com/svg.latex?\Delta{}t) 秒就会进行 ![](https://latex.codecogs.com/svg.latex?1) 次采样，那么在 ![](https://latex.codecogs.com/svg.latex?1) 秒钟之内，采样的总次数就自然是 ![](https://latex.codecogs.com/svg.latex?1/\Delta{}t) 。因此，![](https://latex.codecogs.com/svg.latex?f) 与 ![](https://latex.codecogs.com/svg.latex?\Delta{}t) 的关系即为 ![](https://latex.codecogs.com/svg.latex?f=1/\Delta{}t) 。<br>
-设定传感器的历史状态（History State）保留窗口的时间步长度为 ![](https://latex.codecogs.com/svg.latex?H) 。也可以称之为“状态时域/状态的时间跨度”（State Horizon）。<br>
+设定传感器的历史状态（History State）保留窗口的长度为 ![](https://latex.codecogs.com/svg.latex?H) 。也可以称之为“状态时域/状态的时间跨度”（State Horizon）。<br>
 传感器的历史状态保留窗口的物理时间长度为 ![](https://latex.codecogs.com/svg.latex?T) 。<br>
 既然每隔 ![](https://latex.codecogs.com/svg.latex?\Delta{}t) 秒就会进行 ![](https://latex.codecogs.com/svg.latex?1) 次采样，而允许保留的历史采样结果数量又被设定为 ![](https://latex.codecogs.com/svg.latex?H) ，那么，传感器的历史状态保留窗口的物理时间长度 ![](https://latex.codecogs.com/svg.latex?T) 就自然是 ![](https://latex.codecogs.com/svg.latex?\Delta{}t\cdot{}H) 。总之，![](https://latex.codecogs.com/svg.latex?T) 与 ![](https://latex.codecogs.com/svg.latex?H) 的关系为 ![](https://latex.codecogs.com/svg.latex?T=\Delta{}t\cdot{}H=H/f) 。<br>
 历史状态保留窗口即为 ![](https://latex.codecogs.com/svg.latex?H) 个保留的历史状态的时间序列（temporal sequence）矩阵，即
@@ -163,10 +163,11 @@ VLM采用Transformer架构，其编码器（encoder）有 ![](https://latex.code
 
 它所覆盖的时间跨度等于 ![](https://latex.codecogs.com/svg.latex?t-\left(t-H+1\right)+1=H) ，符合矩阵行数 ![](https://latex.codecogs.com/svg.latex?H) 。<br>
 此外，笔者将字母另改为大写形式 ![](https://latex.codecogs.com/svg.latex?\mathbf{S}) ，是为了对单个历史状态向量（用小写的 ![](https://latex.codecogs.com/svg.latex?\mathbf{s}) ）与包含了多个历史状态向量的时序矩阵（用大写的 ![](https://latex.codecogs.com/svg.latex?\mathbf{S}) ）进行区分。<br>
-首先声明，仅就当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 而言，GRU（Gated Recurrent Unit，门控循环单元）在历史时刻 ![](https://latex.codecogs.com/svg.latex?t-H) 的隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 是已知的，属于当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 下可以直接使用的已知量。不过，如果当前时刻为 ![](https://latex.codecogs.com/svg.latex?t=0) ，也就是“系统刚刚出厂开机”，并没有先前计算好的已知量可供使用，则不妨将 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 初始化为零向量以供后续计算，即
+首先声明，仅就当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 而言，GRU（Gated Recurrent Unit，门控循环单元）在历史时刻 ![](https://latex.codecogs.com/svg.latex?t-H) 的隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 是已知的，属于当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 下可以直接使用的已知量，实际上就是当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 的初始输入量。注意，当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 的初始输入量是时刻 ![](https://latex.codecogs.com/svg.latex?t-H) 的隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 。<br>
+不过，如果当前时刻为 ![](https://latex.codecogs.com/svg.latex?t=H-1) ，也就是“系统刚刚开机不久”，仅仅采集到从时刻 ![](https://latex.codecogs.com/svg.latex?t=0) 到时刻 ![](https://latex.codecogs.com/svg.latex?t=H-1) 的 ![](https://latex.codecogs.com/svg.latex?H) 条传感数据（历史状态向量），并没有已知的隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}=\mathbf{h}_{H-1-H}=\mathbf{h}_{-1}\in\mathbb{R}^{D_{\text{hidden}}}) 可供使用，则不妨将其初始化为零向量，以供后续计算，即
 
 <p align="center">
-<img src="https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}=\mathbf{0}\in\mathbb{R}^{D_{\text{hidden}}}.">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{h}_{-1}=\mathbf{0}\in\mathbb{R}^{D_{\text{hidden}}}.">
 </p>
 
 ![](https://latex.codecogs.com/svg.latex?D_{\text{hidden}}) 表示GRU的隐藏层（hidden layer）维度。在后文中，![](https://latex.codecogs.com/svg.latex?D_{\text{hidden}}) 简记为 ![](https://latex.codecogs.com/svg.latex?D_h) 。<br>
@@ -183,10 +184,11 @@ GRU的更新门（Update Gate）计算可形式化描述为
 <img src="https://latex.codecogs.com/svg.latex?t^\prime\in\{t-H+1,\cdots,t\}">
 </p>
 
-表示当前时刻，此外
+表示当前时刻。<br>
+此外，
 
 <p align="center">
-<img src="https://latex.codecogs.com/svg.latex?W_{\mathbf{z}}\in\mathbb{R}^{D_h\times{}D_s},\quad{}\mathbf{s}_{t^\prime}\in\mathbb{R}^{D_s},\quad{}U_{\mathbf{z}}\in\mathbb{R}^{D_h\times{}D_h},\quad{}\mathbf{h}_{t^\prime-1}\in\mathbb{R}^{D_h},">
+<img src="https://latex.codecogs.com/svg.latex?W_{\mathbf{z}}\in\mathbb{R}^{D_h\times{}D_s},\quad{}\mathbf{s}_{t^\prime}\in\mathbb{R}^{D_s},\quad{}U_{\mathbf{z}}\in\mathbb{R}^{D_h\times{}D_h},\quad{}\mathbf{h}_{t^\prime-1}\in\mathbb{R}^{D_h}.">
 </p>
 
 ![](https://latex.codecogs.com/svg.latex?\sigma(\mathbf{x})) 是Sigmoid函数，它会对输入向量 ![](https://latex.codecogs.com/svg.latex?\mathbf{x}) 的每一个分量 ![](https://latex.codecogs.com/svg.latex?x_i) 独立地计算
@@ -195,3 +197,85 @@ GRU的更新门（Update Gate）计算可形式化描述为
 <img src="https://latex.codecogs.com/svg.latex?\sigma\left(x_i\right)=\frac{1}{1+e^{-x_i}},">
 </p>
 
+从而输出一个与 ![](https://latex.codecogs.com/svg.latex?\mathbf{x}) 同维的向量，这个输出向量的分量的取值范围是 ![](https://latex.codecogs.com/svg.latex?\left(0,1\right)) 。总之，![](https://latex.codecogs.com/svg.latex?\sigma(\cdot)) 将输入向量的所有分量均压缩至 ![](https://latex.codecogs.com/svg.latex?\left(0,1\right)) 范围内。<br>
+GRU的重置门（Reset Gate）计算可形式化描述为
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{r}_{t^\prime}=\sigma\left(W_{\mathbf{r}}\mathbf{s}_{t^\prime}+U_{\mathbf{r}}\mathbf{h}_{t^\prime-1}\right)\in\mathbb{R}^{D_h},">
+</p>
+
+其中
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?W_{\mathbf{r}}\in\mathbb{R}^{D_h\times{}D_s},\quad{}U_{\mathbf{r}}\in\mathbb{R}^{D_h\times{}D_h}.">
+</p>
+
+GRU的候选隐藏状态（Candidate Hidden State，或称“候选激活向量”，Candidate Activation）计算可形式化描述为
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\widetilde{\mathbf{h}}_{t^\prime}=\tanh\left(\widetilde{W}\mathbf{s}_{t^\prime}+\widetilde{U}\cdot\left(\mathbf{r}_{t^\prime}\odot\mathbf{h}_{t^\prime-1}\right)\right)\in\mathbb{R}^{D_h},">
+</p>
+
+其中
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\widetilde{W}\in\mathbb{R}^{D_h\times{}D_s},\quad{}\widetilde{U}\in\mathbb{R}^{D_h\times{}D_h}.">
+</p>
+
+“ ![](https://latex.codecogs.com/svg.latex?\odot) ”表示两个同维向量之间或者两个同维矩阵之间的逐元素独立乘积，结果依然是一个同维的向量/矩阵。<br>
+![](https://latex.codecogs.com/svg.latex?\tanh(\mathbf{x})) 会对输入向量 ![](https://latex.codecogs.com/svg.latex?\mathbf{x}) 的每一个分量 ![](https://latex.codecogs.com/svg.latex?x_i) 独立地计算
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\tanh\left(x_i\right)=\frac{e^{x_i}-e^{-x_i}}{e^{x_i}+e^{-x_i}},">
+</p>
+
+从而输出一个与 ![](https://latex.codecogs.com/svg.latex?\mathbf{x}) 同维的向量，这个输出向量的分量的取值范围是 ![](https://latex.codecogs.com/svg.latex?\left(-1,1\right)) 。总之，![](https://latex.codecogs.com/svg.latex?\tanh(\cdot)) 将输入向量的所有分量均压缩至 ![](https://latex.codecogs.com/svg.latex?\left(-1,1\right)) 范围内。<br>
+GRU的隐藏状态更新计算可形式化描述为在前一时刻隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t^\prime-1}) 与当前时刻候选隐藏状态 ![](https://latex.codecogs.com/svg.latex?\widetilde{\mathbf{h}}_{t^\prime}) 之间进行线性插值（linear interpolation，具有平滑性，与二元性相对），即
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{h}_{t^\prime}=\left(1-\mathbf{z}_{t^\prime}\right)\odot\mathbf{h}_{t^\prime-1}+\mathbf{z}_{t^\prime}\odot\widetilde{\mathbf{h}}_{t^\prime}\in\mathbb{R}^{D_h}.">
+</p>
+
+当机器人的运动在时刻 ![](https://latex.codecogs.com/svg.latex?t^\prime) 依然保持平稳或者依然具备规律性时，![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{t^\prime}\in\mathbb{R}^{D_h}) 的某些维度的分量值将接近于 ![](https://latex.codecogs.com/svg.latex?0) ，使得 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t^\prime}\in\mathbb{R}^{D_h}) 的对应维度的分量值几乎等同于 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t^\prime-1}\in\mathbb{R}^{D_h}) 的对应维度的分量值，同时几乎完全屏蔽 ![](https://latex.codecogs.com/svg.latex?\widetilde{\mathbf{h}}_{t^\prime}\in\mathbb{R}^{D_h}) 的影响，从而实现隐藏状态对应维度的分量值在相邻时刻之间的延续。<br>
+当机器人的运动在时刻 ![](https://latex.codecogs.com/svg.latex?t^\prime) 突发碰撞（collision）事件时，![](https://latex.codecogs.com/svg.latex?\mathbf{z}_{t^\prime}\in\mathbb{R}^{D_h}) 的某些维度的分量值将接近于 ![](https://latex.codecogs.com/svg.latex?1) ，使得 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t^\prime}\in\mathbb{R}^{D_h}) 的对应维度的分量值几乎等同于 ![](https://latex.codecogs.com/svg.latex?\widetilde{\mathbf{h}}_{t^\prime}\in\mathbb{R}^{D_h}) 的对应维度的分量值。与此同时，![](https://latex.codecogs.com/svg.latex?\mathbf{r}_{t^\prime}\in\mathbb{R}^{D_h}) 的对应维度的分量值将接近于 ![](https://latex.codecogs.com/svg.latex?0) ，使得 ![](https://latex.codecogs.com/svg.latex?\widetilde{\mathbf{h}}_{t^\prime}\in\mathbb{R}^{D_h}) 的对应维度的分量值几乎完全由 ![](https://latex.codecogs.com/svg.latex?\mathbf{s}_{t^\prime}\in\mathbb{R}^{D_s})（包含了有关碰撞本体感觉的关键信息）决定，几乎完全屏蔽 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t^\prime-1}\in\mathbb{R}^{D_h}) 的影响。<br>
+在平稳运动或者规律性运动（例如直线行走）期间，隐藏状态应当对运动规律进行稳定编码，使其保持必要的延续性。这就必然要求对传感器传来的高频噪声进行屏蔽，防止其对隐藏状态中针对运动规律的编码造成破坏（其后果将包括但不限于机械臂抖动情况的恶化）。<br>
+在突发碰撞时，先前的隐藏状态不再反映物理实际，它们所编码的运动规律在当前是无效的，当前的隐藏状态不能基于它们进行构建。如果要让当前的隐藏状态能够反映物理实际，就必须对传感器传来的、直接反映机器人碰撞本体感觉的高频关键信息进行充分利用，让其充分影响隐藏状态中针对当前物理实际的编码，同时屏蔽过往的隐藏状态，不让其对当前隐藏状态编码造成污染性的影响。<br>
+GRU的更新门和重置门很好地满足了上述这些要求，使得GRU能够成为一个对机器人而言合格的神经状态估计器（neurological state estimator）。<br>
+最新时刻 ![](https://latex.codecogs.com/svg.latex?t) 下的隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_t\in\mathbb{R}^{D_h}) 就作为GRU子模块的输出结果，它充分整合了历史状态保留窗口
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{S}_{t-H+1:t}\in\mathbb{R}^{H\times{}D_s}">
+</p>
+
+所原本包含的信息。同时，与之相比，![](https://latex.codecogs.com/svg.latex?\mathbf{h}_t\in\mathbb{R}^{D_h}) 是紧凑的（compact）——有关物理状态本体感觉的信息原本由一个矩阵包含，现在则由一个元素数量更少的向量包含。这实现了信息的压缩。<br>
+梳理：<br>
+1、在皮层模块的Q-Former子模块当中，图像、语言的各层次语义信息原本由
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathcal{H}_t\left[l_{\text{start}}:l_{\text{end}}\right]\in\mathbb{R}^{MS\times{}D}">
+</p>
+
+包含，经处理后则由元素数量少得多的
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{z}_{\text{sem}}\in\mathbb{R}^{K\times{}D_{\text{action}}}">
+</p>
+
+包含（转化为意图信息），实现了信息的压缩。<br>
+2、在此处（小脑模块的GRU子模块），有关物理状态本体感觉的信息原本由
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{S}_{t-H+1:t}\in\mathbb{R}^{H\times{}D_s}">
+</p>
+
+包含，经处理后则由元素数量更少的单个向量 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_t\in\mathbb{R}^{D_h}) 包含，同样实现了信息的压缩。<br>
+原论文作者团队将 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_t\in\mathbb{R}^{D_h}) 称为“紧凑的、动态的上下文向量”（compact dynamic context vector），其中“动态”一词的逻辑在于每个时刻下都会实时产生 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_t\in\mathbb{R}^{D_h}) ，“上下文”一词即指物理状态本体感觉历史。<br>
+尽管 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_t\in\mathbb{R}^{D_h}) 是实时产生的，然而这种实时计算并不会随着时间的推移而在延迟性能上发生丝毫的恶化。这是因为，![](https://latex.codecogs.com/svg.latex?H) 的本质是“滚动时域”（Receding Horizon），它是预先设定好的超参数，它决定了机器人的小脑模块在当前时刻 ![](https://latex.codecogs.com/svg.latex?t) 下，只会按时序依次使用传感器最近采样的 ![](https://latex.codecogs.com/svg.latex?H) 条传感数据（历史状态向量）
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\mathbf{s}_{t-H+1},\mathbf{s}_{t-H+2},\cdots,\mathbf{s}_{t-1},\mathbf{s}_t\in\mathbb{R}^{D_s}">
+</p>
+
+来对初始输入的隐藏状态 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 进行固定的 ![](https://latex.codecogs.com/svg.latex?H) 轮处理，而完全不会理睬更久远的传感器传感数据（它们的信息早已被压缩到 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 里面了，自然不需要理睬）。这从输入层面就直接限制了计算量（只有初始输入的 ![](https://latex.codecogs.com/svg.latex?\mathbf{h}_{t-H}\in\mathbb{R}^{D_{\text{hidden}}}) 以及依次输入的 ![](https://latex.codecogs.com/svg.latex?H) 个历史状态向量需要作为输入量参与计算），同时单轮计算流程完全固定（更新门、重置门、候选隐藏状态、隐藏状态更新）。于是，在每个时刻 ![](https://latex.codecogs.com/svg.latex?t) 下，GRU的计算量复杂度始终保持为常数，并不会随时间的推移而保持增长。<br>
+原论文作者团队明确指出了GRU的选型优势：<br>
+“与静态编码器（例如MLP）不同，GRU能够捕获变化的速率（rate of change）与接触瞬态（contact transients，例如碰撞脉冲），这对于在扰动下实现稳定运动至关重要。”
