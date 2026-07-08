@@ -1439,10 +1439,10 @@ Heaviside阶跃函数（Heaviside Step Function）是一种广义函数，定义
 具体而言，机器人的损失函数（Loss Function）为
 
 <p align="center">
-<img src="https://latex.codecogs.com/svg.latex?L=f\left(\text{other}\;\,\text{inputs},a_t[\uptau]\right),">
+<img src="https://latex.codecogs.com/svg.latex?L=f\left(\text{other\space{}inputs},a_t[\uptau]\right)\in\mathbb{R},">
 </p>
 
-该函数以 ![](https://latex.codecogs.com/svg.latex?\text{other\space{}inputs}) 作为“评价依据”，对机器人的 ![](https://latex.codecogs.com/svg.latex?\mathbf{a}_t[\uptau]) 所体现的“动作质量”进行量化。<br>
+该函数以 ![](https://latex.codecogs.com/svg.latex?\text{other\space{}inputs}) 作为“评价依据”，对机器人的 ![](https://latex.codecogs.com/svg.latex?\mathbf{a}_t[\uptau]) 所体现的“动作质量”进行量化，并输出一个量化实数。<br>
 “动作质量”越高，损失值 ![](https://latex.codecogs.com/svg.latex?L) 越小；<br>
 “动作质量”越低，损失值 ![](https://latex.codecogs.com/svg.latex?L) 越大。<br>
 如果采用“行为克隆”（behavior cloning），则机器人的损失函数可表示为
@@ -1455,7 +1455,25 @@ Heaviside阶跃函数（Heaviside Step Function）是一种广义函数，定义
 针对一般形式
 
 <p align="center">
-<img src="https://latex.codecogs.com/svg.latex?L=f\left(\text{other}\;\,\text{inputs},a_t[\uptau]\right),">
+<img src="https://latex.codecogs.com/svg.latex?L=f\left(\text{other\space{}inputs},a_t[\uptau]\right),">
 </p>
 
 逐层显式展开，即
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\begin{align*}\mathbf{a}_t[\uptau]&=W_{\text{out}}\cdot\mathbf{u}^{\left(L+1\right)}[\uptau]\in\mathbb{R}^A\\{}\mathbf{u}^{\left(L+1\right)}[\uptau]&=\mathbf{u}^{\left(L+1\right)}\left[T-1\right]_{t-1\sim{}t}+\sum_{\uptau^\prime=0}^{\uptau}\mathbf{U}^{(L)}\left[\uptau^\prime\right]\in\mathbb{R}^M\\{}\mathbf{U}^{(L)}\left[\uptau^\prime\right]&=W^{(L)}\cdot\mathbf{x}^{(L)}\left[\uptau^\prime\right]+b^{(L)}\in\mathbb{R}^M\\{}\mathbf{x}^{(L)}\left[\uptau^\prime\right]&=\mathbf{x}^{\left(L-1\right)}\left[\uptau^\prime\right]+\text{LIF}\left(\text{Linear}\left(\mathbf{x}^{\left(L-1\right)}\left[\uptau^\prime\right]\right)\right)\\&=\mathbf{x}^{\left(L-1\right)}\left[\uptau^\prime\right]+\mathbf{s}^{(L)}\left[\uptau^\prime\right]\in\mathbb{R}^N\\{}\mathbf{s}^{(L)}\left[\uptau^\prime\right]&=H\left(\mathbf{u}^{(L)}\left[\uptau^\prime\right]-\theta\mathbf{1}\right)\in\mathbb{R}^N\\{}\mathbf{u}^{(L)}\left[\uptau^\prime\right]&=\gamma\cdot\mathbf{u}^{(L)}\left[\uptau^\prime-1\right]+\mathbf{U}^{\left(L-1\right)}\left[\uptau^\prime\right]-\theta\mathbf{s}^{(L)}\left[\uptau^\prime-1\right]\in\mathbb{R}^N\\{}\mathbf{U}^{\left(L-1\right)}\left[\uptau^\prime\right]&=W^{\left(L-1\right)}\cdot\mathbf{x}^{\left(L-1\right)}\left[\uptau^\prime\right]+b^{\left(L-1\right)}\in\mathbb{R}^N\\{}&\cdots\left(\text{lower\space{}layers}\right)\end{align*}">
+</p>
+
+那么，损失函数 ![](https://latex.codecogs.com/svg.latex?L) 对下游参数 ![](https://latex.codecogs.com/svg.latex?W^{\left(L-1\right)}\in\mathbb{R}^{N\times{}N}) 的梯度链（梯度流）即可表示为
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\frac{\partial{}L}{\partial{}W^{\left(L-1\right)}}=\frac{\partial{}L}{\partial\mathbf{a}_t[\uptau]}\cdot\frac{\partial\mathbf{a}_t[\uptau]}{\partial\mathbf{u}^{\left(L+1\right)}[\uptau]}\cdot\frac{\partial\mathbf{u}^{\left(L+1\right)}[\uptau]}{\partial\mathbf{U}^{(L)}\left[\uptau^\prime\right]}\cdot\frac{\partial\mathbf{U}^{(L)}\left[\uptau^\prime\right]}{\partial\mathbf{x}^{(L)}\left[\uptau^\prime\right]}\cdot\frac{\partial\mathbf{x}^{(L)}\left[\uptau^\prime\right]}{\partial\mathbf{s}^{(L)}\left[\uptau^\prime\right]}\cdot\frac{\partial\mathbf{s}^{(L)}\left[\uptau^\prime\right]}{\partial\mathbf{u}^{(L)}\left[\uptau^\prime\right]}\cdot\frac{\partial\mathbf{u}^{(L)}\left[\uptau^\prime\right]}{\partial\mathbf{U}^{\left(L-1\right)}\left[\uptau^\prime\right]}\cdot\frac{\partial\mathbf{U}^{\left(L-1\right)}\left[\uptau^\prime\right]}{\partial{}W^{\left(L-1\right)}},">
+</p>
+
+其中，由于 ![](https://latex.codecogs.com/svg.latex?\mathbf{s}^{(L)}\left[\uptau^\prime\right]) 函数不可微，所以它对自变量（即 ![](https://latex.codecogs.com/svg.latex?\mathbf{u}^{(L)}\left[\uptau^\prime\right]) ）的导数
+
+<p align="center">
+<img src="https://latex.codecogs.com/svg.latex?\frac{\partial\mathbf{s}^{(L)}\left[\uptau^\prime\right]}{\partial\mathbf{u}^{(L)}\left[\uptau^\prime\right]}">
+</p>
+
+不可解，梯度链（梯度流）在此处发生“断裂”，下游参数 ![](https://latex.codecogs.com/svg.latex?W^{\left(L-1\right)}\in\mathbb{R}^{N\times{}N}) 无法接收到上游损失函数 ![](https://latex.codecogs.com/svg.latex?L) 所发出的梯度信息，无法接受优化。![](https://latex.codecogs.com/svg.latex?b^{\left(L-1\right)}\in\mathbb{R}^N) 以及更下游的参数乃至小脑模块、皮层模块的参数同理，不再赘述。
