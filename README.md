@@ -1,6 +1,3 @@
-#### 针对[《A Brain-inspired Embodied Intelligence for Fluid and Fast Reflexive Robotics Control》](https://arxiv.org/abs/2601.14628)论文的解读
-<br><br><br><br><br><br><br><br><br><br>
-
 # 皮层模块——VLM子模块
 
 ## 1、嵌入向量
